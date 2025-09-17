@@ -1,0 +1,3 @@
+type,name,status,source,followup_date,followup_reason,phone,email,companyname,product,location,PRC QT,remarks
+Individual,akash,Follow up,Website,04-11-2024,Testing,1212121212,anonymous@email.com,,nothing," ""delhi"""," """"",
+Corporate,alka,Loose,Linkedin,,,1234567890,alien@email.com,Alien & Sons,nothing," ""delhi"""," """"", 
