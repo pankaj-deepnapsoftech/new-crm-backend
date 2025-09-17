@@ -31,6 +31,8 @@ const leadSchema = mongoose.Schema(
         "Assigned",
         "On Hold",
         "Follow Up",
+        "Demo",
+        "Demo Prepration"
       ],
       default: "Draft",
     },
@@ -111,6 +113,10 @@ const leadSchema = mongoose.Schema(
       },
       notes: String,
     },
+    demoPdf: {
+      type: String,
+    },
+    
   },
   
   { timestamps: true }

@@ -34,6 +34,7 @@ const createLead = TryCatch(async (req, res) => {
     prc_qt,
     leadCategory,
   } = req.body;
+   let demoPdf = req.file ? req.file.path : null;
 
   const websiteCofiguration = await websiteConfigurationModel
     .findOne({
@@ -74,6 +75,7 @@ const createLead = TryCatch(async (req, res) => {
       prc_qt,
       location,
       leadCategory,
+      demoPdf,
     });
     lead = await leadModel.findById(lead._id).populate("products");
 
