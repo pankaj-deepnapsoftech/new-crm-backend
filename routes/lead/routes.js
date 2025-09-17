@@ -1,6 +1,6 @@
 const express = require('express');
-const { createLead, editLead, deleteLead, leadDetails, allLeads, assignedLeads, followupReminders, seenFollowupReminders, getUnseenNotfications, leadSummary, bulkUpload, deleteAllLead, bulkAssign, bulkDownload, dataBank } = require('../../controllers/Lead/controller');
-const { createLeadValidator, validateHandler, editLeadValidator, deleteLeadValidator, leadDetailsValidator } = require('../../validators/lead/validator');
+const { createLead, editLead, deleteLead, leadDetails, allLeads, assignedLeads, followupReminders, seenFollowupReminders, getUnseenNotfications, leadSummary, bulkUpload, deleteAllLead, bulkAssign, bulkDownload, dataBank, scheduleDemo } = require('../../controllers/Lead/controller');
+const { createLeadValidator, validateHandler, editLeadValidator, deleteLeadValidator, leadDetailsValidator, scheduleDemoValidator } = require('../../validators/lead/validator');
 const { checkAccess } = require('../../helpers/checkAccess');
 const { upload } = require('../../utils/multer');
 const { isAuthenticated } = require('../../controllers/auth/controller');
@@ -18,5 +18,13 @@ router.post('/bulk-upload', upload.single('excel'), bulkUpload)
 router.get('/bulk-download', checkAccess, bulkDownload)
 router.post('/bulk-assign', checkAccess, bulkAssign)
 router.post('/data/bank', checkAccess , dataBank)
+router.post(
+  "/schedule-demo",
+  isAuthenticated,
+  checkAccess,
+  scheduleDemoValidator(),
+  validateHandler,
+  scheduleDemo
+);
 
 module.exports = router;
