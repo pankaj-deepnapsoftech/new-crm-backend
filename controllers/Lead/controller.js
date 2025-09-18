@@ -927,7 +927,7 @@ const allLeads = TryCatch(async (req, res) => {
       .populate("creator", "name");
   }
   // console.log(leads)
-  const results = leads.filter((lead) => lead?.status !== "Scheduled Demo"  ).map((lead) => {
+  const results = leads.map((lead) => {
     // .filter((lead) => lead.status === "active")
     return {
       _id: lead._id,
