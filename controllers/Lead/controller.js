@@ -33,8 +33,9 @@ const createLead = TryCatch(async (req, res) => {
     location,
     prc_qt,
     leadCategory,
+    demoPdf
   } = req.body;
-   let demoPdf = req.file ? req.file.path : null;
+  const demoPdfToSave = demoPdf || (req.file ? req.file.path : null);
 
   const websiteCofiguration = await websiteConfigurationModel
     .findOne({
@@ -75,7 +76,7 @@ const createLead = TryCatch(async (req, res) => {
       prc_qt,
       location,
       leadCategory,
-      demoPdf,
+      demoPdf: demoPdfToSave,
     });
     lead = await leadModel.findById(lead._id).populate("products");
 
@@ -285,6 +286,7 @@ const createLead = TryCatch(async (req, res) => {
       prc_qt,
       location,
       leadCategory,
+     
     });
     lead = await leadModel.findById(lead._id).populate("products");
 
@@ -907,7 +909,7 @@ const allLeads = TryCatch(async (req, res) => {
 
   let leads = [];
   if (req.user.role === "Super Admin") {
-    console.log(req.user.organization);
+    // console.log(req.user.organization);
     leads = await leadModel
       .find({ organization: req.user.organization })
       .sort({ createdAt: -1 })
@@ -924,8 +926,9 @@ const allLeads = TryCatch(async (req, res) => {
       .populate("assigned", "name")
       .populate("creator", "name");
   }
-
+  // console.log(leads)
   const results = leads.map((lead) => {
+   
     return {
       _id: lead._id,
       name:
@@ -948,6 +951,7 @@ const allLeads = TryCatch(async (req, res) => {
       prc_qt: lead?.prc_qt,
       leadCategory: lead?.leadCategory,
       dataBank: lead?.dataBank,
+      demoPdf: lead?.demoPdf,
     };
   });
 
