@@ -105,6 +105,14 @@ const leadSchema = mongoose.Schema(
         'Warm'
       ]
     },
+    demo: {
+      demoDateTime: Date,
+      demoType: {
+        type: String,
+        enum: ["Physical", "Virtual"],
+      },
+      notes: String,
+    },
     demoPdf: {
       type: String,
     },

@@ -952,6 +952,7 @@ const allLeads = TryCatch(async (req, res) => {
       leadCategory: lead?.leadCategory,
       dataBank: lead?.dataBank,
       demoPdf: lead?.demoPdf,
+      demo: lead?.demo,
     };
   });
 
@@ -1756,6 +1757,45 @@ const dataBank = async (req, res) => {
   });
 };
 
+const scheduleDemo = TryCatch(async (req, res) => {
+  const { leadId, demoDateTime, demoType, notes } = req.body;
+
+  const lead = await leadModel.findById(leadId);
+  if (!lead) {
+    throw new ErrorHandler("Lead not found", 404);
+  }
+
+  if (
+    req.user.role !== "Super Admin" &&
+    lead.creator.toString() !== req.user.id.toString() &&
+    lead?.assigned?._id?.toString() !== req.user.id.toString()
+  ) {
+    throw new ErrorHandler(
+      "You don't have permission to schedule demo for this lead",
+      403
+    );
+  }
+
+  const updatedLead = await leadModel.findByIdAndUpdate(
+    leadId,
+    {
+      demo: {
+        demoDateTime: new Date(demoDateTime),
+        demoType,
+        notes: notes || "",
+      },
+      status: "Scheduled Demo",
+    },
+    { new: true }
+  );
+
+  res.status(200).json({
+    success: true,
+    message: "Demo scheduled successfully",
+    lead: updatedLead,
+  });
+});
+
 module.exports = {
   createLead,
   editLead,
@@ -1769,4 +1809,5 @@ module.exports = {
   bulkAssign,
   bulkDownload,
   dataBank,
+  scheduleDemo,
 };
