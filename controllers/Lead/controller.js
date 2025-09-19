@@ -33,7 +33,7 @@ const createLead = TryCatch(async (req, res) => {
     location,
     prc_qt,
     leadCategory,
-    demoPdf
+    demoPdf,
   } = req.body;
   const demoPdfToSave = demoPdf || (req.file ? req.file.path : null);
 
@@ -286,7 +286,6 @@ const createLead = TryCatch(async (req, res) => {
       prc_qt,
       location,
       leadCategory,
-     
     });
     lead = await leadModel.findById(lead._id).populate("products");
 
@@ -1792,6 +1791,46 @@ const scheduleDemo = TryCatch(async (req, res) => {
   res.status(200).json({
     success: true,
     message: "Demo scheduled successfully",
+    lead: updatedLead,
+  });
+});
+
+const completeDemo = TryCatch(async (req, res) => {
+  const { leadId } = req.body;
+  const riFile = req.file;
+
+  if (!riFile) {
+    throw new ErrorHandler("RI file is required", 400);
+  }
+
+  const lead = await leadModel.findById(leadId);
+  if (!lead) {
+    throw new ErrorHandler("Lead not found", 404);
+  }
+
+  if (
+    req.user.role !== "Super Admin" &&
+    lead.creator.toString() !== req.user.id.toString() &&
+    lead?.assigned?._id?.toString() !== req.user.id.toString()
+  ) {
+    throw new ErrorHandler(
+      "You don't have permission to complete this demo",
+      403
+    );
+  }
+
+  const updatedLead = await leadModel.findByIdAndUpdate(
+    leadId,
+    {
+      status: "Completed",
+      riFile: riFile.path,
+    },
+    { new: true }
+  );
+
+  res.status(200).json({
+    success: true,
+    message: "Demo completed successfully",
     lead: updatedLead,
   });
 });
