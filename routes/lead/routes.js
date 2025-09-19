@@ -76,13 +76,13 @@ router.post(
   validateHandler,
   scheduleDemo
 );
-// router.post(
-//   "/complete-demo",
-//   upload.single("riFile"),
-//   isAuthenticated,
-//   checkAccess,
-//   validateHandler,
-//   completeDemo
-// );
+router.post(
+  "/complete-demo",
+  upload.single("riFile"),
+  isAuthenticated,
+  checkAccess,
+  validateHandler,
+  completeDemo
+);
 
 module.exports = router;
