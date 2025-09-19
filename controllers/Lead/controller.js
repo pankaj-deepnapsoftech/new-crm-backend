@@ -107,19 +107,17 @@ const createLead = TryCatch(async (req, res) => {
         await notificationModel.create({
           organization: req.user.organization,
           author: creator._id,
-          message: `You have a new lead of ${
-            isExistingPeople.firstname +
+          message: `You have a new lead of ${isExistingPeople.firstname +
             (isExistingPeople?.lastname ? " " + isExistingPeople?.lastname : "")
-          } for follow up`,
+            } for follow up`,
         });
 
         emitEvent(
           req,
           "NEW_FOLLOWUP_LEAD",
           receivers,
-          `You have a new lead of ${
-            isExistingPeople.firstname +
-            (isExistingPeople?.lastname ? " " + isExistingPeople?.lastname : "")
+          `You have a new lead of ${isExistingPeople.firstname +
+          (isExistingPeople?.lastname ? " " + isExistingPeople?.lastname : "")
           } for follow up`
         );
       }
@@ -129,19 +127,17 @@ const createLead = TryCatch(async (req, res) => {
       await notificationModel.create({
         organization: req.user.organization,
         author: assignedTo._id,
-        message: `${
-          isExistingPeople.firstname +
+        message: `${isExistingPeople.firstname +
           (isExistingPeople?.lastname ? " " + isExistingPeople?.lastname : "")
-        }'s lead has been assigned to you`,
+          }'s lead has been assigned to you`,
       });
 
       emitEvent(
         req,
         "NEW_ASSIGNED_LEAD",
         receivers,
-        `${
-          isExistingPeople.firstname +
-          (isExistingPeople?.lastname ? " " + isExistingPeople?.lastname : "")
+        `${isExistingPeople.firstname +
+        (isExistingPeople?.lastname ? " " + isExistingPeople?.lastname : "")
         }'s lead has been assigned to you`
       );
     }
@@ -520,9 +516,9 @@ const editLead = TryCatch(async (req, res) => {
 
     const name = updatedLead?.people
       ? updatedLead?.people?.firstname +
-        (updatedLead?.people?.lastname
-          ? " " + updatedLead?.people?.lastname
-          : "")
+      (updatedLead?.people?.lastname
+        ? " " + updatedLead?.people?.lastname
+        : "")
       : updatedLead?.company?.companyname;
 
     const assignedTo = await adminModel.findById(updatedLead?.assigned);
@@ -570,9 +566,9 @@ const editLead = TryCatch(async (req, res) => {
 
     const name = updatedLead?.people
       ? updatedLead?.people?.firstname +
-        (updatedLead?.people?.lastname
-          ? " " + updatedLead?.people?.lastname
-          : "")
+      (updatedLead?.people?.lastname
+        ? " " + updatedLead?.people?.lastname
+        : "")
       : updatedLead?.company?.companyname;
 
     const creator = await adminModel.findById(updatedLead?.creator);
@@ -675,9 +671,8 @@ const editLead = TryCatch(async (req, res) => {
     sms_entity_id &&
     (isExistingLead?.people?.phone || isExistingLead?.company?.phone)
   ) {
-    const message = `Dear ${
-      isExistingLead?.people?.firstname || isExistingLead?.company?.companyname
-    }, Welcome to Itsybizz! We're thrilled to have you on board and ready to support your business journey. Let's succeed together!`;
+    const message = `Dear ${isExistingLead?.people?.firstname || isExistingLead?.company?.companyname
+      }, Welcome to Itsybizz! We're thrilled to have you on board and ready to support your business journey. Let's succeed together!`;
 
     await sendSms(
       sms_api_key,
@@ -697,11 +692,9 @@ const editLead = TryCatch(async (req, res) => {
     sms_entity_id &&
     (isExistingLead?.people?.phone || isExistingLead?.company?.phone)
   ) {
-    const message = `Hi ${
-      isExistingLead?.people?.firstname || isExistingLead?.company?.companyname
-    }, your purchase of ${
-      isExistingLead?.products[0]?.name
-    } is confirmed! Thank you for choosing us. Feel free to reach out at +919205404075.-ITSYBIZZ`;
+    const message = `Hi ${isExistingLead?.people?.firstname || isExistingLead?.company?.companyname
+      }, your purchase of ${isExistingLead?.products[0]?.name
+      } is confirmed! Thank you for choosing us. Feel free to reach out at +919205404075.-ITSYBIZZ`;
     await sendSms(
       sms_api_key,
       sms_api_secret,
@@ -721,13 +714,11 @@ const editLead = TryCatch(async (req, res) => {
     (isExistingLead?.people?.email || isExistingLead?.company?.email)
   ) {
     const subject = ` Welcome to ${organization?.company}`;
-    const message = `<p>Dear <strong>${
-      isExistingLead?.people?.firstname || isExistingLead?.company?.companyname
-    }</strong>,</p>
+    const message = `<p>Dear <strong>${isExistingLead?.people?.firstname || isExistingLead?.company?.companyname
+      }</strong>,</p>
     <br>
-    <p>Welcome to ${
-      organization?.company
-    }! We’re thrilled to have you on board and are excited to support you on your business journey</p>
+    <p>Welcome to ${organization?.company
+      }! We’re thrilled to have you on board and are excited to support you on your business journey</p>
                      <br>
                      <p>Our team is dedicated to helping you succeed, and we’re here to provide the resources and assistance you need every step of the way. If you have any questions or need guidance, please don’t hesitate to reach out.</p>
                      <br>
@@ -750,20 +741,17 @@ const editLead = TryCatch(async (req, res) => {
     (isExistingLead?.people?.email || isExistingLead?.company?.email)
   ) {
     const subject = `Your Purchase with ITSYBIZZ is Confirmed!`;
-    const message = `<p>Dear <strong>${
-      isExistingLead?.people?.firstname || isExistingLead?.company?.companyname
-    }</strong>,</p>
+    const message = `<p>Dear <strong>${isExistingLead?.people?.firstname || isExistingLead?.company?.companyname
+      }</strong>,</p>
     <br>
-                     <p>Thank you for completing your purchase of ${
-                       isExistingLead?.products[0]?.name
-                     }! We're thrilled to have you with us and are committed to providing you with the best experience.</p>
+                     <p>Thank you for completing your purchase of ${isExistingLead?.products[0]?.name
+      }! We're thrilled to have you with us and are committed to providing you with the best experience.</p>
     <br>
 
                      <p>If you have any questions or need assistance, please don't hesitate to reach out at <strong>+91 92054 04075</strong> reply to this email.</p>
     <br>
-                     <p>Thank you once again for choosing ${
-                       organization?.company
-                     }!</p>
+                     <p>Thank you once again for choosing ${organization?.company
+      }!</p>
     <br>
 
                      <p>Warm regards,</p>
@@ -874,24 +862,12 @@ const leadDetails = TryCatch(async (req, res) => {
     .populate({
       path: "products",
       populate: [
-        {
-          path: "category",
-          model: "Product Category",
-          select: "categoryname",
-        },
+        { path: "category", model: "Product Category", select: "categoryname" },
       ],
     });
 
   if (!lead) {
     throw new ErrorHandler("Lead doesn't exists", 400);
-  }
-
-  if (
-    req.user.role !== "Super Admin" &&
-    lead.creator.toString() !== req.user.id.toString() &&
-    lead?.assigned?._id?.toString() !== req.user.id.toString()
-  ) {
-    throw new Error("You are not allowed to access this lead", 401);
   }
 
   res.status(200).json({
@@ -900,6 +876,7 @@ const leadDetails = TryCatch(async (req, res) => {
     lead: lead,
   });
 });
+
 
 const allLeads = TryCatch(async (req, res) => {
   const { page = 1 } = req.body;
@@ -1276,7 +1253,7 @@ const bulkUpload = async (req, res) => {
     .fromFile(req.file.path)
     .then(async (response) => {
       // Remove the CSV file
-      fs.unlink(req.file.path, () => {});
+      fs.unlink(req.file.path, () => { });
 
       await checkDataValidity(response);
 
@@ -1607,23 +1584,20 @@ const checkDataValidity = async (data) => {
 
       if (item?.status?.toLowerCase() === "assigned") {
         throw new Error(
-          `Assigned status cannot be applied during bulk upload for record named ${
-            item?.name || item?.companyname
+          `Assigned status cannot be applied during bulk upload for record named ${item?.name || item?.companyname
           }`
         );
       }
 
       if (!validStatusValues.includes(item?.status)) {
         throw new Error(
-          `Invalid status value found for record named ${
-            item?.name || item?.companyname
+          `Invalid status value found for record named ${item?.name || item?.companyname
           }: ${item?.status}`
         );
       }
     } else {
       throw new Error(
-        `Status value is missing for record named ${
-          item?.name || item?.companyname
+        `Status value is missing for record named ${item?.name || item?.companyname
         }`
       );
     }
@@ -1646,15 +1620,13 @@ const checkDataValidity = async (data) => {
         (source.length > 1 ? " " + capitalizeFirstChar(source[1]) : "");
       if (!validSourceValues.includes(item?.source)) {
         throw new Error(
-          `Invalid source value found for record named ${
-            item?.name || item?.companyname
+          `Invalid source value found for record named ${item?.name || item?.companyname
           }: ${item?.source}`
         );
       }
     } else {
       throw new Error(
-        `Source value is missing for record named ${
-          item?.name || item?.companyname
+        `Source value is missing for record named ${item?.name || item?.companyname
         }`
       );
     }
@@ -1670,8 +1642,7 @@ const checkDataValidity = async (data) => {
       item?.type?.toLowerCase() !== "corporate"
     ) {
       throw new Error(
-        `Invalid type value for record named ${
-          item?.name || item?.companyname
+        `Invalid type value for record named ${item?.name || item?.companyname
         }: ${item?.type}`
       );
     }
@@ -1680,14 +1651,12 @@ const checkDataValidity = async (data) => {
     if (item?.status?.toLowerCase() === "follow up") {
       if (!item?.followup_date || !item?.followup_reason) {
         throw new Error(
-          `followup_date and followup_reason should be present if the status is Follow Up for record named ${
-            item?.name || item?.companyname
+          `followup_date and followup_reason should be present if the status is Follow Up for record named ${item?.name || item?.companyname
           }`
         );
       } else if (!isValidDate(item?.followup_date)) {
         throw new Error(
-          `followup_date is not valid for record named ${
-            item?.name || item?.companyname
+          `followup_date is not valid for record named ${item?.name || item?.companyname
           }`
         );
       }
@@ -1696,21 +1665,18 @@ const checkDataValidity = async (data) => {
     // If phone and email is not present and valid
     if (!item?.email) {
       throw new Error(
-        `email value is missing for record named ${
-          item?.name || item?.companyname
+        `email value is missing for record named ${item?.name || item?.companyname
         }`
       );
     }
     if (!item?.phone) {
       throw new Error(
-        `phone value is missing for record named ${
-          item?.name || item?.companyname
+        `phone value is missing for record named ${item?.name || item?.companyname
         }`
       );
     } else if (item?.phone?.length > 10 || item?.phone?.length < 10) {
       throw new Error(
-        `phone field should be 10 digits long for record named ${
-          item?.name || item?.companyname
+        `phone field should be 10 digits long for record named ${item?.name || item?.companyname
         }: ${item?.phone}`
       );
     }
@@ -1720,15 +1686,13 @@ const checkDataValidity = async (data) => {
     const productsName = products.map((product) => product.name);
     if (!item?.product) {
       throw new Error(
-        `product value missing for record named ${
-          item?.name || item?.companyname
+        `product value missing for record named ${item?.name || item?.companyname
         }`
       );
     } else {
       if (!productsName?.includes(item?.product)) {
         throw new Error(
-          `Invalid product name found for record named ${
-            item?.name || item?.companyname
+          `Invalid product name found for record named ${item?.name || item?.companyname
           }`
         );
       }
@@ -1835,6 +1799,42 @@ const completeDemo = TryCatch(async (req, res) => {
   });
 });
 
+const saveOrUpdateKYC = TryCatch(async (req, res) => {
+  const { _id, annual_turn_over, company_type, company_located, company_tenure, kyc_remarks } = req.body;
+
+  // Find the lead
+  let lead = await leadModel.findById(_id);
+  
+  if (!lead) {
+    throw new ErrorHandler("Lead not found", 404);
+  }
+
+  // Permission check
+  if (
+    req.user.role !== "Super Admin" &&
+    lead.creator.toString() !== req.user.id.toString() &&
+    lead?.assigned?._id?.toString() !== req.user.id.toString()
+  ) {
+    throw new ErrorHandler("You are not allowed to update this lead's KYC", 403);
+  }
+
+  // Update the KYC fields
+  lead.annual_turn_over = annual_turn_over;
+  lead.company_type = company_type;
+  lead.company_located = company_located;
+  lead.company_tenure = company_tenure;
+  lead.kyc_remarks = kyc_remarks;
+
+  await lead.save();
+
+  res.status(200).json({
+    success: true,
+    message: "KYC saved/updated successfully",
+    lead,
+  });
+});
+
+
 module.exports = {
   createLead,
   editLead,
@@ -1849,5 +1849,6 @@ module.exports = {
   bulkDownload,
   dataBank,
   scheduleDemo,
-  completeDemo
+  completeDemo,
+  saveOrUpdateKYC
 };
