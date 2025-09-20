@@ -36,10 +36,17 @@ const validateHandler = (req, res, next)=>{
     })
 }
 
+const scheduleDemoValidator = ()=>[
+    body("leadId", "Lead Id field should not be empty").notEmpty(),
+    body("demoDateTime", "Demo Date and Time field should not be empty").notEmpty(),
+    body("demoType", "Demo Type field should not be empty").notEmpty().isIn(["Physical", "Virtual"]).withMessage("Demo Type must be either Physical or Virtual"),
+]
+
 module.exports = {
-    createLeadValidator,
-    editLeadValidator,
-    deleteLeadValidator,
-    leadDetailsValidator,
-    validateHandler
-}
+  createLeadValidator,
+  editLeadValidator,
+  deleteLeadValidator,
+  leadDetailsValidator,
+  validateHandler,
+  scheduleDemoValidator,
+};
