@@ -1849,5 +1849,5 @@ module.exports = {
   bulkDownload,
   dataBank,
   scheduleDemo,
-  completeDemo
+  completeDemo,
 };
