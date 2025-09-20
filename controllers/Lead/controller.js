@@ -17,6 +17,7 @@ const productModel = require("../../models/product");
 const { capitalizeFirstChar } = require("../../utils/capitalize");
 const { parse } = require("json2csv");
 const path = require("path");
+const sendWhatsappTemplate = require("../../utils/sendWhatsappTemplate");
 
 const createLead = TryCatch(async (req, res) => {
   const {
@@ -34,13 +35,13 @@ const createLead = TryCatch(async (req, res) => {
     prc_qt,
     leadCategory,
   } = req.body;
-   let demoPdf = req.file ? req.file.path : null;
+  let demoPdf = req.file ? req.file.path : null;
 
+  // Website Configuration (email + sms configs)
   const websiteCofiguration = await websiteConfigurationModel
-    .findOne({
-      organization: req.user.organization,
-    })
+    .findOne({ organization: req.user.organization })
     .populate("organization");
+
   const {
     sms_api_key,
     sms_api_secret,
@@ -53,12 +54,10 @@ const createLead = TryCatch(async (req, res) => {
     organization,
   } = websiteCofiguration;
 
+  // ============= PEOPLE LEAD ==================
   if (leadtype === "People" && peopleId) {
     const isExistingPeople = await peopleModel.findById(peopleId);
-
-    if (!isExistingPeople) {
-      throw new Error("Person doesn't exists", 400);
-    }
+    if (!isExistingPeople) throw new Error("Person doesn't exist", 400);
 
     let lead = await leadModel.create({
       creator: req.user.id,
@@ -79,13 +78,13 @@ const createLead = TryCatch(async (req, res) => {
     });
     lead = await leadModel.findById(lead._id).populate("products");
 
-    // Lead completed, now make the person customer
+    // Make person customer if lead completed
     if (status === "Completed") {
       const isExistingCustomer = await customerModel.findOne({
         people: peopleId,
       });
       if (!isExistingCustomer) {
-        const customer = await customerModel.create({
+        await customerModel.create({
           organization: lead.organization,
           creator: lead.creator,
           customertype: leadtype,
@@ -93,7 +92,10 @@ const createLead = TryCatch(async (req, res) => {
           products,
         });
       }
-    } else if (status === "Follow Up") {
+    }
+
+    // Follow-up notification
+    if (status === "Follow Up") {
       const date = new Date();
       const followupDate = new Date(lead?.followup_date);
       if (
@@ -106,9 +108,8 @@ const createLead = TryCatch(async (req, res) => {
         await notificationModel.create({
           organization: req.user.organization,
           author: creator._id,
-          message: `You have a new lead of ${
-            isExistingPeople.firstname +
-            (isExistingPeople?.lastname ? " " + isExistingPeople?.lastname : "")
+          message: `You have a new lead of ${isExistingPeople.firstname} ${
+            isExistingPeople?.lastname || ""
           } for follow up`,
         });
 
@@ -116,21 +117,22 @@ const createLead = TryCatch(async (req, res) => {
           req,
           "NEW_FOLLOWUP_LEAD",
           receivers,
-          `You have a new lead of ${
-            isExistingPeople.firstname +
-            (isExistingPeople?.lastname ? " " + isExistingPeople?.lastname : "")
+          `You have a new lead of ${isExistingPeople.firstname} ${
+            isExistingPeople?.lastname || ""
           } for follow up`
         );
       }
-    } else if (status === "Assigned") {
+    }
+
+    // Assigned notification
+    if (status === "Assigned") {
       const assignedTo = await adminModel.findById(lead?.assigned);
       const receivers = [{ email: assignedTo.email }];
       await notificationModel.create({
         organization: req.user.organization,
         author: assignedTo._id,
-        message: `${
-          isExistingPeople.firstname +
-          (isExistingPeople?.lastname ? " " + isExistingPeople?.lastname : "")
+        message: `${isExistingPeople.firstname} ${
+          isExistingPeople?.lastname || ""
         }'s lead has been assigned to you`,
       });
 
@@ -138,139 +140,115 @@ const createLead = TryCatch(async (req, res) => {
         req,
         "NEW_ASSIGNED_LEAD",
         receivers,
-        `${
-          isExistingPeople.firstname +
-          (isExistingPeople?.lastname ? " " + isExistingPeople?.lastname : "")
+        `${isExistingPeople.firstname} ${
+          isExistingPeople?.lastname || ""
         }'s lead has been assigned to you`
       );
     }
 
-    // SEND SMS
-    if (
-      status === "New" &&
-      sms_api_key &&
-      sms_api_secret &&
-      sms_sender_id &&
-      sms_welcome_template_id &&
-      sms_entity_id &&
-      isExistingPeople?.phone
-    ) {
-      const message = `Dear ${isExistingPeople?.firstname}, Welcome to Itsybizz! We're thrilled to have you on board and ready to support your business journey. Let's succeed together!`;
-      try {
-        if (
-          sms_api_key &&
-          sms_api_secret &&
-          sms_sender_id &&
-          sms_welcome_template_id &&
-          sms_entity_id &&
-          isExistingPeople?.phone
-        ) {
-          await sendSms(
-            sms_api_key,
-            sms_api_secret,
-            isExistingPeople.phone,
-            sms_welcome_template_id,
-            sms_sender_id,
-            sms_entity_id,
-            message
-          );
-        }
-      } catch (err) {
-        console.error("Failed to send lead SMS (people):", err);
+    // ✅ SEND SMS
+    try {
+      if (status === "New" && isExistingPeople?.phone) {
+        const message = `Dear ${isExistingPeople.firstname}, Welcome to Itsybizz! We're thrilled to have you on board and ready to support your business journey. Let's succeed together!`;
+        await sendSms(
+          sms_api_key,
+          sms_api_secret,
+          isExistingPeople.phone,
+          sms_welcome_template_id,
+          sms_sender_id.trim(),
+          sms_entity_id,
+          message
+        );
       }
-    } else if (
-      status === "Completed" &&
-      sms_api_key &&
-      sms_api_secret &&
-      sms_sender_id &&
-      sms_dealdone_template_id &&
-      sms_entity_id &&
-      isExistingPeople?.phone
-    ) {
-      const message = `Hi ${isExistingPeople?.firstname}, your purchase of ${lead?.products[0].name} is confirmed! Thank you for choosing us. Feel free to reach out at +919205404075.-ITSYBIZZ`;
-      sendSms(
-        sms_api_key,
-        sms_api_secret,
-        isExistingPeople?.phone,
-        sms_dealdone_template_id,
-        sms_sender_id,
-        sms_entity_id,
-        message
+      if (status === "Completed" && isExistingPeople?.phone) {
+        const message = `Hi ${isExistingPeople.firstname}, your purchase of ${lead?.products[0]?.name} is confirmed! Thank you for choosing us.`;
+        await sendSms(
+          sms_api_key,
+          sms_api_secret,
+          isExistingPeople.phone,
+          sms_dealdone_template_id,
+          sms_sender_id.trim(),
+          sms_entity_id,
+          message
+        );
+      }
+    } catch (err) {
+      console.error("SMS error (people):", err);
+    }
+
+    // ✅ SEND WHATSAPP
+    try {
+      if (status === "New" && isExistingPeople?.phone) {
+        await sendWhatsappTemplate(
+          isExistingPeople.phone,
+          "welcome_template",
+          "en_US",
+          [{ type: "text", text: isExistingPeople.firstname }]
+        );
+      }
+      // People lead - Completed WhatsApp
+      if (status === "Completed" && isExistingPeople?.phone) {
+        console.log("WhatsApp Completed Lead Params:", {
+          name: isExistingPeople.firstname,
+          product: lead?.products[0]?.name,
+        });
+
+        await sendWhatsappTemplate(
+          isExistingPeople.phone,
+          "purchase_confirmation",
+          "en_US",
+          [
+            { type: "text", text: isExistingPeople.firstname || "Customer" }, // {{1}}
+            { type: "text", text: lead?.products?.[0]?.name || "your order" }, // {{2}}
+          ]
+        );
+      }
+    } catch (err) {
+      console.error(
+        "WhatsApp error (people):",
+        err.response?.data || err.message
       );
     }
 
-    // SEND EMAIL
-    if (
-      status === "New" &&
-      email_id &&
-      email_password &&
-      isExistingPeople?.email
-    ) {
-      const subject = ` Welcome to ${organization?.company}`;
-      const message = `<p>Dear <strong>${isExistingPeople?.firstname}</strong>,</p>
-                        <br>
-                        <p>Welcome to ${organization?.company}! We’re thrilled to have you on board and are excited to support you on your business journey</p>
-                                        <br>
-                                        <p>Our team is dedicated to helping you succeed, and we’re here to provide the resources and assistance you need every step of the way. If you have any questions or need guidance, please don’t hesitate to reach out.</p>
-                                        <br>
-                                        <p>Let’s succeed together!</p>
-                                        <br>
-                                        <p>Best regards,</p>
-                                        <p>The ${organization?.company} Team</>`;
-      try {
-        if (email_id && email_password && isExistingPeople?.email) {
-          await sendBusinessEmail(
-            isExistingPeople.email,
-            subject,
-            message,
-            email_id,
-            email_password
-          );
-        }
-      } catch (err) {
-        console.error("Failed to send lead email (people):", err);
+    // ✅ SEND EMAIL
+    try {
+      if (status === "New" && isExistingPeople?.email) {
+        const subject = ` Welcome to ${organization?.company}`;
+        const message = `<p>Dear <strong>${isExistingPeople.firstname}</strong>,</p>
+          <p>Welcome to ${organization?.company}! We’re thrilled to have you on board.</p>`;
+        await sendBusinessEmail(
+          isExistingPeople.email,
+          subject,
+          message,
+          email_id,
+          email_password
+        );
       }
-    } else if (
-      status === "Completed" &&
-      email_id &&
-      email_password &&
-      isExistingPeople?.email
-    ) {
-      const subject = `Your Purchase with ITSYBIZZ is Confirmed!`;
-      const message = `<p>Dear <strong>${isExistingPeople?.firstname}</strong>,</p>
-      <br>
-                       <p>Thank you for completing your purchase of ${lead?.products[0]?.name}! We're thrilled to have you with us and are committed to providing you with the best experience.</p>
-      <br>
-  
-                       <p>If you have any questions or need assistance, please don't hesitate to reach out at <strong>+91 92054 04075</strong> reply to this email.</p>
-      <br>
-                       <p>Thank you once again for choosing ${organization?.company}!</p>
-      <br>
-  
-                       <p>Warm regards,</p>
-                       <p>The ${organization?.company} Team</p>`;
-
-      sendBusinessEmail(
-        isExistingPeople?.email,
-        subject,
-        message,
-        email_id,
-        email_password
-      );
+      if (status === "Completed" && isExistingPeople?.email) {
+        const subject = `Your Purchase with ITSYBIZZ is Confirmed!`;
+        const message = `<p>Dear <strong>${isExistingPeople.firstname}</strong>,</p>
+          <p>Thank you for completing your purchase of ${lead?.products[0]?.name}! We're thrilled to have you with us.</p>`;
+        await sendBusinessEmail(
+          isExistingPeople.email,
+          subject,
+          message,
+          email_id,
+          email_password
+        );
+      }
+    } catch (err) {
+      console.error("Email error (people):", err);
     }
 
-    return res.status(200).json({
-      status: 200,
-      success: true,
-      message: "Lead has been created successfully",
-      lead: lead,
-    });
-  } else if (leadtype === "Company" && companyId) {
+    return res
+      .status(200)
+      .json({ success: true, message: "Lead created", lead });
+  }
+
+  // ============= COMPANY LEAD ==================
+  if (leadtype === "Company" && companyId) {
     const isExistingCompany = await companyModel.findById(companyId);
-
-    if (!isExistingCompany) {
-      throw new Error("Corporate doesn't exists", 400);
-    }
+    if (!isExistingCompany) throw new Error("Company doesn't exist", 400);
 
     let lead = await leadModel.create({
       organization: req.user.organization,
@@ -288,14 +266,12 @@ const createLead = TryCatch(async (req, res) => {
     });
     lead = await leadModel.findById(lead._id).populate("products");
 
-    // Lead completed, now make the company customer
     if (status === "Completed") {
       const isExistingCustomer = await customerModel.findOne({
         company: companyId,
       });
-
       if (!isExistingCustomer) {
-        const customer = await customerModel.create({
+        await customerModel.create({
           organization: lead.organization,
           creator: lead.creator,
           customertype: leadtype,
@@ -303,7 +279,9 @@ const createLead = TryCatch(async (req, res) => {
           products,
         });
       }
-    } else if (status === "Follow Up") {
+    }
+
+    if (status === "Follow Up") {
       const date = new Date();
       const followupDate = new Date(lead?.followup_date);
       if (
@@ -326,7 +304,9 @@ const createLead = TryCatch(async (req, res) => {
           `You have a new lead of ${isExistingCompany.companyname} for follow up`
         );
       }
-    } else if (status === "Assigned") {
+    }
+
+    if (status === "Assigned") {
       const assignedTo = await adminModel.findById(lead?.assigned);
       const receivers = [{ email: assignedTo.email }];
       await notificationModel.create({
@@ -343,108 +323,98 @@ const createLead = TryCatch(async (req, res) => {
       );
     }
 
-    // SEND SMS
-    if (
-      status === "New" &&
-      sms_api_key &&
-      sms_api_secret &&
-      sms_sender_id &&
-      sms_welcome_template_id &&
-      sms_entity_id &&
-      isExistingCompany?.phone
-    ) {
-      const message = `Dear ${isExistingCompany?.companyname}, Welcome to Itsybizz! We're thrilled to have you on board and ready to support your business journey. Let's succeed together!`;
+    // ✅ SEND SMS
+    try {
+      if (status === "New" && isExistingCompany?.phone) {
+        const message = `Dear ${isExistingCompany.companyname}, Welcome to Itsybizz! We're thrilled to have you on board.`;
+        await sendSms(
+          sms_api_key,
+          sms_api_secret,
+          isExistingCompany.phone,
+          sms_welcome_template_id,
+          sms_sender_id.trim(),
+          sms_entity_id,
+          message
+        );
+      }
+      if (status === "Completed" && isExistingCompany?.phone) {
+        const message = `Hi ${isExistingCompany.companyname}, your purchase of ${lead?.products[0]?.name} is confirmed! Thank you for choosing us.`;
+        await sendSms(
+          sms_api_key,
+          sms_api_secret,
+          isExistingCompany.phone,
+          sms_dealdone_template_id,
+          sms_sender_id.trim(),
+          sms_entity_id,
+          message
+        );
+      }
+    } catch (err) {
+      console.error("SMS error (company):", err);
+    }
 
-      sendSms(
-        sms_api_key,
-        sms_api_secret,
-        isExistingCompany?.phone,
-        sms_welcome_template_id,
-        sms_sender_id,
-        sms_entity_id,
-        message
-      );
-    } else if (
-      status === "Completed" &&
-      sms_api_key &&
-      sms_api_secret &&
-      sms_sender_id &&
-      sms_dealdone_template_id &&
-      sms_entity_id &&
-      isExistingCompany?.phone
-    ) {
-      const message = `Hi ${isExistingCompany?.companyname}, your purchase of ${lead?.products[0].name} is confirmed! Thank you for choosing us. Feel free to reach out at +919205404075.-ITSYBIZZ`;
-      sendSms(
-        sms_api_key,
-        sms_api_secret,
-        isExistingCompany?.companyname,
-        sms_dealdone_template_id,
-        sms_sender_id,
-        sms_entity_id,
-        message
+    // ✅ SEND WHATSAPP
+    try {
+      if (status === "New" && isExistingCompany?.phone) {
+        await sendWhatsappTemplate(
+          isExistingCompany.phone,
+          "welcome_template",
+          "en_US",
+          [{ type: "text", text: isExistingCompany.companyname }]
+        );
+      }
+      // Company lead - Completed WhatsApp
+      if (status === "Completed" && isExistingCompany?.phone) {
+        await sendWhatsappTemplate(
+          isExistingCompany.phone,
+          "purchase_confirmation",
+          "en_US",
+          [
+            { type: "text", text: isExistingCompany.companyname }, // {{1}}
+            { type: "text", text: lead?.products[0]?.name || "product" }, // {{2}}
+          ]
+        );
+      }
+    } catch (err) {
+      console.error(
+        "WhatsApp error (company):",
+        err.response?.data || err.message
       );
     }
 
-    // SEND EMAIL
-    if (
-      status === "New" &&
-      email_id &&
-      email_password &&
-      isExistingCompany?.email
-    ) {
-      const subject = ` Welcome to ${organization?.company}`;
-      const message = `<p>Dear <strong>${isExistingCompany?.companyname}</strong>,</p>
-                        <br>
-                        <p>Welcome to ${organization?.company}! We’re thrilled to have you on board and are excited to support you on your business journey</p>
-                                        <br>
-                                        <p>Our team is dedicated to helping you succeed, and we’re here to provide the resources and assistance you need every step of the way. If you have any questions or need guidance, please don’t hesitate to reach out.</p>
-                                        <br>
-                                        <p>Let’s succeed together!</p>
-                                        <br>
-                                        <p>Best regards,</p>
-                                        <p>The ${organization?.company} Team</p>`;
-
-      sendBusinessEmail(
-        isExistingCompany?.email,
-        subject,
-        message,
-        email_id,
-        email_password
-      );
-    } else if (
-      status === "Completed" &&
-      email_id &&
-      email_password &&
-      isExistingCompany?.email
-    ) {
-      const subject = `Your Purchase with ITSYBIZZ is Confirmed!`;
-      const message = `<p>Dear <strong>${isExistingCompany?.companyname}</strong>,</p>
-      <br>
-                       <p>Thank you for completing your purchase of ${lead?.products[0]?.name}! We're thrilled to have you with us and are committed to providing you with the best experience.</p>
-      <br>
-  
-                       <p>If you have any questions or need assistance, please don't hesitate to reach out at <strong>+91 92054 04075</strong> reply to this email.</p>
-      <br>
-                       <p>Thank you once again for choosing ${organization?.company}!</p>
-      <br>
-  
-                       <p>Warm regards,</p>
-                       <p>The ${organization?.company} Team</p>`;
-      sendBusinessEmail(
-        isExistingCompany?.email,
-        subject,
-        message,
-        email_id,
-        email_password
-      );
+    // ✅ SEND EMAIL
+    try {
+      if (status === "New" && isExistingCompany?.email) {
+        const subject = ` Welcome to ${organization?.company}`;
+        const message = `<p>Dear <strong>${isExistingCompany.companyname}</strong>,</p>
+          <p>Welcome to ${organization?.company}! We’re thrilled to have you on board.</p>`;
+        await sendBusinessEmail(
+          isExistingCompany.email,
+          subject,
+          message,
+          email_id,
+          email_password
+        );
+      }
+      if (status === "Completed" && isExistingCompany?.email) {
+        const subject = `Your Purchase with ITSYBIZZ is Confirmed!`;
+        const message = `<p>Dear <strong>${isExistingCompany.companyname}</strong>,</p>
+          <p>Thank you for completing your purchase of ${lead?.products[0]?.name}! We're thrilled to have you with us.</p>`;
+        await sendBusinessEmail(
+          isExistingCompany.email,
+          subject,
+          message,
+          email_id,
+          email_password
+        );
+      }
+    } catch (err) {
+      console.error("Email error (company):", err);
     }
 
-    return res.status(200).json({
-      status: 200,
-      success: true,
-      message: "Lead has been created successfully",
-      lead: lead,
-    });
+    return res
+      .status(200)
+      .json({ success: true, message: "Lead created", lead });
   }
 
   throw new ErrorHandler("Lead type must be Individual or Corporate");
