@@ -2,7 +2,12 @@
 const axios = require("axios");
 const TotalWhatsapp = require("../models/totalWhatsapp");
 
-const sendWhatsappTemplate = async (phone, template_name, template_lang, components = []) => {
+const sendWhatsappTemplate = async (
+  phone,
+  template_name,
+  template_lang,
+  components = []
+) => {
   try {
     const templateData = {
       messaging_product: "whatsapp",
@@ -13,12 +18,14 @@ const sendWhatsappTemplate = async (phone, template_name, template_lang, compone
         language: {
           code: template_lang,
         },
-        components: components.length > 0 ? [
-          {
-            type: "body",
-            parameters: components,
-          },
-        ] : [],
+        ...(components.length > 0 && {
+          components: [
+            {
+              type: "body",
+              parameters: components,
+            },
+          ],
+        }),
       },
     };
 
