@@ -12,32 +12,40 @@ const createCompany = TryCatch(async (req, res) => {
       409
     );
   }
+
   isExistingCompany = await companyModel.findOne({ phone });
   if (isExistingCompany) {
     throw new ErrorHandler(
-      "A corparate with this phone no. id is already registered",
+      "A corporate with this phone no. is already registered",
       409
     );
   }
 
+  const formatName = (name = "") =>
+    name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
+
+  const formattedCompanyName = formatName(companyname.trim());
+  const formattedContact = formatName(contact?.trim());
+
   const company = await companyModel.create({
     organization: req.user.organization,
     creator: req.user.id,
-    companyname: companyname,
-    email: email,
-    contact: contact,
-    phone: phone,
-    website: website,
-    gst_no: gst_no
+    companyname: formattedCompanyName,
+    email,
+    contact: formattedContact,
+    phone,
+    website,
+    gst_no,
   });
 
   res.status(200).json({
     status: 200,
     success: true,
     message: "Corporate has been created successfully",
-    company: company,
+    company,
   });
 });
+
 
 const editCompany = TryCatch(async (req, res) => {
   const { companyId, name, email, website, contact, phone, gst_no } = req.body;

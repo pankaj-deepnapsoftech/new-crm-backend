@@ -17,6 +17,7 @@ const {
   dataBank,
   scheduleDemo,
   completeDemo,
+  saveOrUpdateKYC,
 } = require("../../controllers/Lead/controller");
 const {
   createLeadValidator,
@@ -84,5 +85,5 @@ router.post(
   validateHandler,
   completeDemo
 );
-
+router.post("/kyc", isAuthenticated, saveOrUpdateKYC);
 module.exports = router;
