@@ -18,6 +18,8 @@ const {
   scheduleDemo,
   completeDemo,
   saveOrUpdateKYC,
+  bulkSms,
+  
 } = require("../../controllers/Lead/controller");
 const {
   createLeadValidator,
@@ -62,6 +64,12 @@ router.post(
   validateHandler,
   leadDetails
 );
+
+
+router.post("/bulk-sms", isAuthenticated, bulkSms);
+
+
+
 router.post("/all-leads", allLeads);
 router.get("/assigned-lead", checkAccess, assignedLeads);
 router.get("/lead-summary", checkAccess, leadSummary);

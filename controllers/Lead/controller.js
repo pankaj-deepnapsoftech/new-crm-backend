@@ -1916,6 +1916,91 @@ const saveOrUpdateKYC = TryCatch(async (req, res) => {
     lead,
   });
 });
+const bulkSms = TryCatch(async (req, res) => {
+  try {
+    const { leadIds } = req.body;
+
+    if (!leadIds || !Array.isArray(leadIds) || leadIds.length === 0) {
+      return res.status(400).json({ success: false, message: "leadIds array is required" });
+    }
+
+    // Website SMS config
+    const websiteCofiguration = await websiteConfigurationModel.findOne({
+      organization: req.user.organization,
+    });
+    const {
+      sms_api_key,
+      sms_api_secret,
+      sms_sender_id,
+      sms_entity_id,
+      sms_welcome_template_id,
+    } = websiteCofiguration;
+
+    if (!sms_api_key || !sms_api_secret || !sms_welcome_template_id) {
+      return res.status(400).json({ success: false, message: "SMS config missing" });
+    }
+
+    let results = [];
+
+    for (const leadId of leadIds) {
+      const lead = await leadModel
+        .findById(leadId)
+        .populate("people")
+        .populate("company")
+        .populate("products");
+
+      if (!lead) {
+        results.push({ leadId, status: "failed", error: "Lead not found" });
+        continue;
+      }
+
+      const phone = lead?.people?.phone || lead?.company?.phone || null;
+      const name = lead?.people?.firstname || lead?.company?.companyname || "Customer";
+
+      if (!phone) {
+        results.push({ leadId, status: "failed", error: "No phone number" });
+        continue;
+      }
+
+      const smsMessage = `Dear ${name}, Welcome to Itsybizz! We're thrilled to have you on board and ready to support your business journey. Let's succeed together!`;
+
+      try {
+        const smsResult = await sendSms(
+          sms_api_key,
+          sms_api_secret,
+          phone,
+          sms_welcome_template_id,
+          sms_sender_id.trim(),
+          sms_entity_id,
+          smsMessage
+        );
+
+        results.push({ leadId, phone, status: "success", smsResult });
+      } catch (err) {
+        results.push({
+          leadId,
+          phone,
+          status: "failed",
+          error: err.message || "SMS send error",
+        });
+      }
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Bulk SMS operation completed",
+      results,
+    });
+  } catch (err) {
+    console.error("Bulk SMS error:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Bulk SMS operation failed",
+      error: err.message,
+    });
+  }
+});
+
 
 module.exports = {
   createLead,
@@ -1933,4 +2018,5 @@ module.exports = {
   scheduleDemo,
   completeDemo,
   saveOrUpdateKYC,
+  bulkSms,
 };
