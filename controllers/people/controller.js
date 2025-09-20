@@ -10,7 +10,6 @@ const proformaInvoiceModel = require("../../models/proformaInvoice");
 const { generateOTP } = require("../../utils/generateOtp");
 
 const createPeople = TryCatch(async (req, res) => {
-  // const {firstname, lastname, company, email, phone} = req.body;
   const { firstname, lastname, email, phone } = req.body;
 
   let isExistingPeople = await peopleModel.findOne({ email });
@@ -23,32 +22,25 @@ const createPeople = TryCatch(async (req, res) => {
     throw new Error("Person with this phone no. already exists", 409);
   }
 
-  // let person;
+  const formatName = (name = "") =>
+    name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
 
-  // if(company === ''){
-  //     person = await peopleModel.create({
-  //         firstname, lastname, email, phone
-  //     })
-  // }
-  // else{
-  //     person = await peopleModel.create({
-  //         firstname, lastname, company, email, phone
-  //     })
-  // }
+  const formattedFirstname = formatName(firstname);
+  const formattedLastname = formatName(lastname);
 
   const { otp, expiresAt } = generateOTP();
 
   SendMail(
     "OtpVerification.ejs",
-    { userName: firstname, otp },
+    { userName: formattedFirstname, otp },
     { email, subject: "OTP Verification" }
   );
 
   const person = await peopleModel.create({
     organization: req.user.organization,
     creator: req.user.id,
-    firstname,
-    lastname,
+    firstname: formattedFirstname,
+    lastname: formattedLastname,
     email,
     phone,
     otp,
@@ -60,9 +52,10 @@ const createPeople = TryCatch(async (req, res) => {
     status: 200,
     success: true,
     message: "Person has been created successfully",
-    person: person,
+    person,
   });
 });
+
 
 const editPeople = TryCatch(async (req, res) => {
   //   const { peopleId, firstname, lastname, email, phone, company } = req.body;

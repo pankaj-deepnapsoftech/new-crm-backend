@@ -38,7 +38,6 @@ const createLead = TryCatch(async (req, res) => {
   } = req.body;
   const demoPdfToSave = demoPdf || (req.file ? req.file.path : null);
 
-  // Website Configuration (email + sms configs)
   const websiteCofiguration = await websiteConfigurationModel
     .findOne({ organization: req.user.organization })
     .populate("organization");
@@ -55,7 +54,6 @@ const createLead = TryCatch(async (req, res) => {
     organization,
   } = websiteCofiguration;
 
-  // ============= PEOPLE LEAD ==================
   if (leadtype === "People" && peopleId) {
     const isExistingPeople = await peopleModel.findById(peopleId);
     if (!isExistingPeople) throw new Error("Person doesn't exist", 400);
@@ -79,7 +77,6 @@ const createLead = TryCatch(async (req, res) => {
     });
     lead = await leadModel.findById(lead._id).populate("products");
 
-    // Make person customer if lead completed
     if (status === "Completed") {
       const isExistingCustomer = await customerModel.findOne({
         people: peopleId,
@@ -95,8 +92,7 @@ const createLead = TryCatch(async (req, res) => {
       }
     }
 
-    // Follow-up notification
-    if (status === "Follow Up") {
+    else if (status === "Follow Up") {
       const date = new Date();
       const followupDate = new Date(lead?.followup_date);
       if (
@@ -162,7 +158,7 @@ const createLead = TryCatch(async (req, res) => {
         );
       }
       if (status === "Completed" && isExistingPeople?.phone) {
-        const message = `Hi ${isExistingPeople.firstname}, your purchase of ${lead?.products[0]?.name} is confirmed! Thank you for choosing us.`;
+        const message = `Hi ${isExistingPeople.firstname}, your purchase of ${lead?.products[0]?.name} is confirmed! Thank you for choosing us. Feel free to reach out at +919205404075.-ITSYBIZZ`;
         await sendSms(
           sms_api_key,
           sms_api_secret,
@@ -225,19 +221,43 @@ const createLead = TryCatch(async (req, res) => {
       if (status === "New" && isExistingPeople?.email) {
         const subject = ` Welcome to ${organization?.company}`;
         const message = `<p>Dear <strong>${isExistingPeople.firstname}</strong>,</p>
-          <p>Welcome to ${organization?.company}! We’re thrilled to have you on board.</p>`;
-        await sendBusinessEmail(
-          isExistingPeople.email,
-          subject,
-          message,
-          email_id,
-          email_password
-        );
+        <br>
+
+          <p>Welcome to ${organization?.company}! We’re thrilled to have you on board and are excited to support you on your business journey.</p>
+          <br>
+          <p>Our team is dedicated to helping you succeed, and we’re here to provide the resources and assistance you need every step of the way. If you have any questions or need guidance, please don’t hesitate to reach out.</p>
+          <br>
+          <p>Let’s succeed together!</p>
+                                        <br>
+                                        <p>Best regards,</p>
+                                        <p>The ${organization?.company} Team</>`;
+         try {
+           if (email_id && email_password && isExistingPeople?.email) {
+             await sendBusinessEmail(
+               isExistingPeople.email,
+               subject,
+               message,
+               email_id,
+               email_password
+             );
+           }
+         } catch (err) {
+           console.error("Failed to send lead email (people):", err);
+         }
       }
       if (status === "Completed" && isExistingPeople?.email) {
         const subject = `Your Purchase with ITSYBIZZ is Confirmed!`;
         const message = `<p>Dear <strong>${isExistingPeople.firstname}</strong>,</p>
-          <p>Thank you for completing your purchase of ${lead?.products[0]?.name}! We're thrilled to have you with us.</p>`;
+          <p>Thank you for completing your purchase of ${lead?.products[0]?.name}! We're thrilled to have you with us and are committed to providing you with the best experience.</p>
+          <br>
+  
+                       <p>If you have any questions or need assistance, please don't hesitate to reach out at <strong>+91 92054 04075</strong> reply to this email.</p>
+      <br>
+                       <p>Thank you once again for choosing ${organization?.company}!</p>
+      <br>
+  
+                       <p>Warm regards,</p>
+                       <p>The ${organization?.company} Team</p>`;
         await sendBusinessEmail(
           isExistingPeople.email,
           subject,
@@ -252,10 +272,13 @@ const createLead = TryCatch(async (req, res) => {
 
     return res
       .status(200)
-      .json({ success: true, message: "Lead created", lead });
+      .json({
+        success: true,
+        message: "Lead has been created successfully",
+        lead: lead,
+      });
   }
 
-  // ============= COMPANY LEAD ==================
   if (leadtype === "Company" && companyId) {
     const isExistingCompany = await companyModel.findById(companyId);
     if (!isExistingCompany) throw new Error("Company doesn't exist", 400);
@@ -336,7 +359,7 @@ const createLead = TryCatch(async (req, res) => {
     // ✅ SEND SMS
     try {
       if (status === "New" && isExistingCompany?.phone) {
-        const message = `Dear ${isExistingCompany.companyname}, Welcome to Itsybizz! We're thrilled to have you on board.`;
+        const message = `Dear ${isExistingCompany.companyname}, Welcome to Itsybizz! We're thrilled to have you on board and ready to support your business journey. Let's succeed together!`;
         await sendSms(
           sms_api_key,
           sms_api_secret,
@@ -348,7 +371,7 @@ const createLead = TryCatch(async (req, res) => {
         );
       }
       if (status === "Completed" && isExistingCompany?.phone) {
-        const message = `Hi ${isExistingCompany.companyname}, your purchase of ${lead?.products[0]?.name} is confirmed! Thank you for choosing us.`;
+        const message = `Hi ${isExistingCompany.companyname}, your purchase of ${lead?.products[0]?.name} is confirmed! Thank you for choosing us. Feel free to reach out at +919205404075.-ITSYBIZZ`;
         await sendSms(
           sms_api_key,
           sms_api_secret,
@@ -404,7 +427,15 @@ const createLead = TryCatch(async (req, res) => {
       if (status === "New" && isExistingCompany?.email) {
         const subject = ` Welcome to ${organization?.company}`;
         const message = `<p>Dear <strong>${isExistingCompany.companyname}</strong>,</p>
-          <p>Welcome to ${organization?.company}! We’re thrilled to have you on board.</p>`;
+        <br>
+          <p>Welcome to ${organization?.company}! We’re thrilled to have you on board and are excited to support you on your business journey.</p>
+          <br>
+                                        <p>Our team is dedicated to helping you succeed, and we’re here to provide the resources and assistance you need every step of the way. If you have any questions or need guidance, please don’t hesitate to reach out.</p>
+                                        <br>
+                                        <p>Let’s succeed together!</p>
+                                        <br>
+                                        <p>Best regards,</p>
+                                        <p>The ${organization?.company} Team</p>`;
         await sendBusinessEmail(
           isExistingCompany.email,
           subject,
@@ -416,7 +447,17 @@ const createLead = TryCatch(async (req, res) => {
       if (status === "Completed" && isExistingCompany?.email) {
         const subject = `Your Purchase with ITSYBIZZ is Confirmed!`;
         const message = `<p>Dear <strong>${isExistingCompany.companyname}</strong>,</p>
-          <p>Thank you for completing your purchase of ${lead?.products[0]?.name}! We're thrilled to have you with us.</p>`;
+        <br>
+          <p>Thank you for completing your purchase of ${lead?.products[0]?.name}! We're thrilled to have you with us and are committed to providing you with the best experience.</p>
+          <br>
+  
+                       <p>If you have any questions or need assistance, please don't hesitate to reach out at <strong>+91 92054 04075</strong> reply to this email.</p>
+      <br>
+                       <p>Thank you once again for choosing ${organization?.company}!</p>
+      <br>
+  
+                       <p>Warm regards,</p>
+                       <p>The ${organization?.company} Team</p>`;
         await sendBusinessEmail(
           isExistingCompany.email,
           subject,
@@ -431,7 +472,11 @@ const createLead = TryCatch(async (req, res) => {
 
     return res
       .status(200)
-      .json({ success: true, message: "Lead created", lead });
+      .json({
+        success: true,
+        message: "Lead has been created successfully",
+        lead,
+      });
   }
 
   throw new ErrorHandler("Lead type must be Individual or Corporate");
