@@ -1,5 +1,5 @@
 const express = require('express');
-const { createGroup, changeOnlineStatus, getChatGroup, getAlluser, getNotifications, getuser } = require('../../controllers/chat/chat');
+const { createGroup, changeOnlineStatus, getChatGroup, getAlluser, getNotifications, getuser } = require('../../controllers/chat/Chat');
 const { checkAccess } = require('../../helpers/checkAccess');
 
 const { createChatValidator, validateHandler } = require('../../validators/chat/chat');

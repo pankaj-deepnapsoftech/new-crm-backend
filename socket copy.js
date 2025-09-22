@@ -1,4 +1,4 @@
-const { Message } = require("./models/Chat");  // Import the Message model
+const { Message } = require("./models/chat");  // Import the Message model
 const path = require('path');
 const fs = require("fs");
 const { PassThrough, pipeline } = require('stream');
