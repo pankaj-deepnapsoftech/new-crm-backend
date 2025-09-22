@@ -115,8 +115,47 @@ const deleteDocument = async (req, res) => {
   }
 };
 
+const updateDocument = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { documentName, documentCategory, documentFile } = req.body;
+
+    const document = await Document.findById(id);
+
+    if (!document) {
+      return res.status(404).json({
+        success: false,
+        message: "Document not found",
+      });
+    }
+
+    if (documentName) document.documentName = documentName;
+    if (documentCategory) document.documentCategory = documentCategory;
+
+    if (documentFile) {
+      document.documentFile = documentFile;
+    }
+
+    await document.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Document updated successfully",
+      data: document,
+    });
+  } catch (error) {
+    console.error("Error updating document:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to update document",
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   createDocument,
   getDocuments,
   deleteDocument,
+  updateDocument,
 };
