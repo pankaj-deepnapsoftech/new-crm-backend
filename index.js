@@ -42,7 +42,7 @@ const notificationRoutes = require("./routes/notification/routes");
 const createNotifications = require("./helpers/createNotifications");
 const { SendMail } = require("./config/nodeMailer.config");
 const RenewalRecord = require("./routes/excel/routes");
-
+const documentCenterRoutes = require("./routes/document center/routes");
 const chatRoutes = require("./routes/chat/chatRoute");
 
 const PORT = process.env.PORT;
@@ -127,6 +127,7 @@ app.use("/api/renewal" , RenewalRecord);
 app.post("/api/send-builk-Whatsapp",SendTemplate)
 app.get("/NavigateTowhatsapp",NavigateTowhatsapp)
 app.get("/api/totalWhatsapp",isAuthenticated, totalWhatsapp);
+app.use("/api/document-center", isAuthenticated, documentCenterRoutes);
 
 // Fetch Indiamart Leads
 // fetchLast7Days();
