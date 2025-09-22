@@ -1840,7 +1840,11 @@ const completeDemo = TryCatch(async (req, res) => {
     throw new ErrorHandler("RI file is required", 400);
   }
 
-  const lead = await leadModel.findById(leadId);
+  const lead = await leadModel
+    .findById(leadId)
+    .populate("people")
+    .populate("company")
+    .populate("products");
   if (!lead) {
     throw new ErrorHandler("Lead not found", 404);
   }
@@ -1863,14 +1867,89 @@ const completeDemo = TryCatch(async (req, res) => {
       riFile: riFile.path,
     },
     { new: true }
-  );
+  ).populate("people").populate("company").populate("products");
+
+  // 🔹 Website Config
+  const websiteCofiguration = await websiteConfigurationModel
+    .findOne({ organization: req.user.organization })
+    .populate("organization");
+  const {
+    sms_api_key,
+    sms_api_secret,
+    sms_sender_id,
+    sms_dealdone_template_id,
+    sms_entity_id,
+    email_id,
+    email_password,
+    organization,
+  } = websiteCofiguration;
+
+  // Common fields
+  const phone = updatedLead?.people?.phone || updatedLead?.company?.phone;
+  const email = updatedLead?.people?.email || updatedLead?.company?.email;
+  const name =
+    updatedLead?.people?.firstname ||
+    updatedLead?.company?.companyname ||
+    "Customer";
+  const product = updatedLead?.products?.[0]?.name || "your product";
+
+  // ✅ SEND SMS
+  try {
+    if (phone) {
+      const message = `Hi ${name}, your purchase of ${product} is confirmed! Thank you for choosing us. Feel free to reach out at +919205404075.-ITSYBIZZ`;
+      await sendSms(
+        sms_api_key,
+        sms_api_secret,
+        phone,
+        sms_dealdone_template_id,
+        sms_sender_id.trim(),
+        sms_entity_id,
+        message
+      );
+    }
+  } catch (err) {
+    console.error("SMS error (completeDemo):", err);
+  }
+
+  // ✅ SEND WHATSAPP
+  try {
+    if (phone) {
+      await sendWhatsappTemplate(
+        phone,
+        "lead_completed", // 👈 your approved WhatsApp template
+        "en_US"
+      );
+    }
+  } catch (err) {
+    console.error("WhatsApp error (completeDemo):", err.response?.data || err.message);
+  }
+
+  // ✅ SEND EMAIL
+  try {
+    if (email) {
+      const subject = `Your Purchase with ITSYBIZZ is Confirmed!`;
+      const message = `<p>Dear <strong>${name}</strong>,</p>
+        <p>Thank you for completing your purchase of ${product}! We're thrilled to have you with us and are committed to providing you with the best experience.</p>
+        <br>
+        <p>If you have any questions or need assistance, please don't hesitate to reach out at <strong>+91 92054 04075</strong> or reply to this email.</p>
+        <br>
+        <p>Thank you once again for choosing ${organization?.company}!</p>
+        <br>
+        <p>Warm regards,<br/>The ${organization?.company} Team</p>`;
+
+      await sendBusinessEmail(email, subject, message, email_id, email_password);
+    }
+  } catch (err) {
+    console.error("Email error (completeDemo):", err);
+  }
 
   res.status(200).json({
     success: true,
-    message: "Demo completed successfully",
+    message: "Demo completed successfully & notifications sent",
     lead: updatedLead,
   });
 });
+
 
 const saveOrUpdateKYC = TryCatch(async (req, res) => {
   const {
