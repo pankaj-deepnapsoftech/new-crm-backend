@@ -60,6 +60,9 @@ const websiteConfigurationSchema = mongoose.Schema(
 const websiteConfigurationModel = mongoose.model(
   "Website Configuration",
   websiteConfigurationSchema
+
+
+  
 );
 
 module.exports = websiteConfigurationModel;
