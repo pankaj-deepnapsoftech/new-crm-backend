@@ -19,7 +19,6 @@ const router = express.Router();
 
 router.post(
   "/",
-  upload.single("documentFile"),
   validateCreateDocument,
   checkAccess,
   createDocument
@@ -27,7 +26,6 @@ router.post(
 router.get("/", checkAccess, getDocuments);
 router.put(
   "/:id",
-  upload.single("documentFile"),
   validateUpdateDocument,
   checkAccess,
   updateDocument
