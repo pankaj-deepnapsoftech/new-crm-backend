@@ -90,9 +90,7 @@ const createLead = TryCatch(async (req, res) => {
           products,
         });
       }
-    }
-
-    else if (status === "Follow Up") {
+    } else if (status === "Follow Up") {
       const date = new Date();
       const followupDate = new Date(lead?.followup_date);
       if (
@@ -231,19 +229,19 @@ const createLead = TryCatch(async (req, res) => {
                                         <br>
                                         <p>Best regards,</p>
                                         <p>The ${organization?.company} Team</>`;
-         try {
-           if (email_id && email_password && isExistingPeople?.email) {
-             await sendBusinessEmail(
-               isExistingPeople.email,
-               subject,
-               message,
-               email_id,
-               email_password
-             );
-           }
-         } catch (err) {
-           console.error("Failed to send lead email (people):", err);
-         }
+        try {
+          if (email_id && email_password && isExistingPeople?.email) {
+            await sendBusinessEmail(
+              isExistingPeople.email,
+              subject,
+              message,
+              email_id,
+              email_password
+            );
+          }
+        } catch (err) {
+          console.error("Failed to send lead email (people):", err);
+        }
       }
       if (status === "Completed" && isExistingPeople?.email) {
         const subject = `Your Purchase with ITSYBIZZ is Confirmed!`;
@@ -270,13 +268,11 @@ const createLead = TryCatch(async (req, res) => {
       console.error("Email error (people):", err);
     }
 
-    return res
-      .status(200)
-      .json({
-        success: true,
-        message: "Lead has been created successfully",
-        lead: lead,
-      });
+    return res.status(200).json({
+      success: true,
+      message: "Lead has been created successfully",
+      lead: lead,
+    });
   }
 
   if (leadtype === "Company" && companyId) {
@@ -470,13 +466,11 @@ const createLead = TryCatch(async (req, res) => {
       console.error("Email error (company):", err);
     }
 
-    return res
-      .status(200)
-      .json({
-        success: true,
-        message: "Lead has been created successfully",
-        lead,
-      });
+    return res.status(200).json({
+      success: true,
+      message: "Lead has been created successfully",
+      lead,
+    });
   }
 
   throw new ErrorHandler("Lead type must be Individual or Corporate");
@@ -1833,11 +1827,12 @@ const scheduleDemo = TryCatch(async (req, res) => {
 });
 
 const completeDemo = TryCatch(async (req, res) => {
-  const { leadId } = req.body;
-  const riFile = req.file;
+  const { leadId, riFileUrl } = req.body;
 
-  if (!riFile) {
-    throw new ErrorHandler("RI file is required", 400);
+  console.log("completeDemo called with:", { leadId, riFileUrl });
+
+  if (!riFileUrl) {
+    throw new ErrorHandler("RI file URL is required", 400);
   }
 
   const lead = await leadModel
@@ -1848,6 +1843,12 @@ const completeDemo = TryCatch(async (req, res) => {
   if (!lead) {
     throw new ErrorHandler("Lead not found", 404);
   }
+
+  console.log("Lead found before update:", {
+    id: lead._id,
+    status: lead.status,
+    riFile: lead.riFile,
+  });
 
   if (
     req.user.role !== "Super Admin" &&
@@ -1860,14 +1861,24 @@ const completeDemo = TryCatch(async (req, res) => {
     );
   }
 
-  const updatedLead = await leadModel.findByIdAndUpdate(
-    leadId,
-    {
-      status: "Completed",
-      riFile: riFile.path,
-    },
-    { new: true }
-  ).populate("people").populate("company").populate("products");
+  const updatedLead = await leadModel
+    .findByIdAndUpdate(
+      leadId,
+      {
+        status: "Completed",
+        riFile: riFileUrl,
+      },
+      { new: true }
+    )
+    .populate("people")
+    .populate("company")
+    .populate("products");
+
+  console.log("Lead after update:", {
+    id: updatedLead._id,
+    status: updatedLead.status,
+    riFile: updatedLead.riFile,
+  });
 
   // 🔹 Website Config
   const websiteCofiguration = await websiteConfigurationModel
@@ -1921,7 +1932,10 @@ const completeDemo = TryCatch(async (req, res) => {
       );
     }
   } catch (err) {
-    console.error("WhatsApp error (completeDemo):", err.response?.data || err.message);
+    console.error(
+      "WhatsApp error (completeDemo):",
+      err.response?.data || err.message
+    );
   }
 
   // ✅ SEND EMAIL
@@ -1937,7 +1951,13 @@ const completeDemo = TryCatch(async (req, res) => {
         <br>
         <p>Warm regards,<br/>The ${organization?.company} Team</p>`;
 
-      await sendBusinessEmail(email, subject, message, email_id, email_password);
+      await sendBusinessEmail(
+        email,
+        subject,
+        message,
+        email_id,
+        email_password
+      );
     }
   } catch (err) {
     console.error("Email error (completeDemo):", err);
@@ -1949,7 +1969,6 @@ const completeDemo = TryCatch(async (req, res) => {
     lead: updatedLead,
   });
 });
-
 
 const saveOrUpdateKYC = TryCatch(async (req, res) => {
   const {
@@ -2000,7 +2019,9 @@ const bulkSms = TryCatch(async (req, res) => {
     const { leadIds } = req.body;
 
     if (!leadIds || !Array.isArray(leadIds) || leadIds.length === 0) {
-      return res.status(400).json({ success: false, message: "leadIds array is required" });
+      return res
+        .status(400)
+        .json({ success: false, message: "leadIds array is required" });
     }
 
     // Website SMS config
@@ -2016,7 +2037,9 @@ const bulkSms = TryCatch(async (req, res) => {
     } = websiteCofiguration;
 
     if (!sms_api_key || !sms_api_secret || !sms_welcome_template_id) {
-      return res.status(400).json({ success: false, message: "SMS config missing" });
+      return res
+        .status(400)
+        .json({ success: false, message: "SMS config missing" });
     }
 
     let results = [];
@@ -2034,7 +2057,8 @@ const bulkSms = TryCatch(async (req, res) => {
       }
 
       const phone = lead?.people?.phone || lead?.company?.phone || null;
-      const name = lead?.people?.firstname || lead?.company?.companyname || "Customer";
+      const name =
+        lead?.people?.firstname || lead?.company?.companyname || "Customer";
 
       if (!phone) {
         results.push({ leadId, status: "failed", error: "No phone number" });
@@ -2080,6 +2104,85 @@ const bulkSms = TryCatch(async (req, res) => {
   }
 });
 
+const downloadRIFile = TryCatch(async (req, res) => {
+  const { leadId } = req.params;
+
+  console.log("downloadRIFile called for leadId:", leadId);
+
+  const lead = await leadModel
+    .findById(leadId)
+    .populate("people", "firstname lastname")
+    .populate("company", "companyname");
+
+  if (!lead) {
+    console.log("Lead not found for ID:", leadId);
+    throw new ErrorHandler("Lead not found", 404);
+  }
+
+  console.log("Lead found:", {
+    id: lead._id,
+    status: lead.status,
+    riFile: lead.riFile,
+    hasRiFile: !!lead.riFile,
+  });
+
+  if (!lead.riFile) {
+    console.log("No riFile found for lead:", leadId);
+    throw new ErrorHandler("No RI file found for this lead", 404);
+  }
+
+  // Check if user has permission to download
+  if (
+    req.user.role !== "Super Admin" &&
+    lead.creator.toString() !== req.user.id.toString() &&
+    lead?.assigned?._id?.toString() !== req.user.id.toString()
+  ) {
+    throw new ErrorHandler(
+      "You don't have permission to download this file",
+      403
+    );
+  }
+
+  // Validate that the riFile is a valid URL
+  try {
+    new URL(lead.riFile);
+  } catch (error) {
+    throw new ErrorHandler("Invalid RI file URL stored in database", 400);
+  }
+
+  // Get lead name for logging
+  const leadName =
+    lead?.people?.firstname || lead?.company?.companyname || "Unknown";
+
+  console.log(`RI file download requested for lead: ${leadName} (${leadId})`);
+
+  // Return the file URL
+  res.status(200).json({
+    success: true,
+    message: "RI file URL retrieved successfully",
+    fileUrl: lead.riFile,
+    leadName: leadName,
+    leadId: leadId,
+  });
+});
+
+const uploadRIFile = TryCatch(async (req, res) => {
+  if (!req.file) {
+    throw new ErrorHandler("No file uploaded", 400);
+  }
+
+  // Return the file path that can be accessed via the backend
+  const baseUrl =
+    process.env.BACKEND_URL || "https://crmbackendnew.deepnapsoftech.com";
+  const fileUrl = `${baseUrl}/uploads/${req.file.filename}`;
+
+  res.status(200).json({
+    success: true,
+    message: "File uploaded successfully",
+    fileUrl: fileUrl,
+    filename: req.file.filename,
+  });
+});
 
 module.exports = {
   createLead,
@@ -2098,4 +2201,6 @@ module.exports = {
   completeDemo,
   saveOrUpdateKYC,
   bulkSms,
+  downloadRIFile,
+  uploadRIFile,
 };
