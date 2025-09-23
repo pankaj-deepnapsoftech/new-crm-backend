@@ -1,4 +1,4 @@
-const { chatroomModel, onlinestatusModel } = require("../../models/Chat");
+const { chatroomModel, onlinestatusModel } = require("../../models/chat");
 const { TryCatch, ErrorHandler } = require("../../helpers/error");
 const mongoose = require('mongoose');
 const adminModel = require("../../models/admin");

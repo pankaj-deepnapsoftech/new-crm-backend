@@ -1,4 +1,4 @@
-const { Message, onlinestatusModel } = require("./models/Chat");  // Import the Message model
+const { Message, onlinestatusModel } = require("./models/chat");  // Import the Message model
 const path = require('path');
 const fs = require("fs");
 const notificationModel = require("./models/notification");

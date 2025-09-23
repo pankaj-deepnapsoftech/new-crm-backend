@@ -32,7 +32,8 @@ const leadSchema = mongoose.Schema(
         "On Hold",
         "Follow Up",
         "Demo",
-        "Demo Preparation"
+        "Demo Preparation",
+        "Scheduled Demo",
       ],
       default: "Draft",
     },
@@ -52,7 +53,7 @@ const leadSchema = mongoose.Schema(
         "Gem",
         "Freelancer",
         "IndiaMart",
-        "Fiverr"
+        "Fiverr",
       ],
       default: "Social Media",
     },
@@ -92,18 +93,14 @@ const leadSchema = mongoose.Schema(
     dataBank: {
       type: Boolean,
       default: false,
-      required: true
+      required: true,
     },
     prc_qt: {
       type: String,
     },
     leadCategory: {
       type: String,
-      enum: [
-        'Hot',
-        'Cold',
-        'Warm'
-      ]
+      enum: ["Hot", "Cold", "Warm"],
     },
     demo: {
       demoDateTime: Date,
@@ -116,21 +113,21 @@ const leadSchema = mongoose.Schema(
     demoPdf: {
       type: String,
     },
+    riFile: {
+      type: String,
+    },
     annual_turn_over: { type: String },
     company_type: {
       type: String,
-      enum: ["Limited", "Private Limited", "Proprietorship", "Partnership",""]
+      enum: ["Limited", "Private Limited", "Proprietorship", "Partnership", ""],
     },
     company_located: { type: String },
     company_tenure: { type: String },
     kyc_remarks: { type: String },
-
   },
 
   { timestamps: true }
 );
-
- 
 
 leadSchema.pre(
   "deleteMany",

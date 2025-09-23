@@ -19,7 +19,8 @@ const {
   completeDemo,
   saveOrUpdateKYC,
   bulkSms,
-  
+  downloadRIFile,
+  uploadRIFile,
 } = require("../../controllers/Lead/controller");
 const {
   createLeadValidator,
@@ -65,10 +66,7 @@ router.post(
   leadDetails
 );
 
-
 router.post("/bulk-sms", isAuthenticated, bulkSms);
-
-
 
 router.post("/all-leads", allLeads);
 router.get("/assigned-lead", checkAccess, assignedLeads);
@@ -87,11 +85,24 @@ router.post(
 );
 router.post(
   "/complete-demo",
-  upload.single("riFile"),
   isAuthenticated,
   checkAccess,
   validateHandler,
   completeDemo
 );
 router.post("/kyc", isAuthenticated, saveOrUpdateKYC);
+router.get(
+  "/download-ri/:leadId",
+  isAuthenticated,
+  checkAccess,
+  downloadRIFile
+);
+router.post(
+  "/upload-ri",
+  isAuthenticated,
+  checkAccess,
+  upload.single("riFile"),
+  uploadRIFile
+);
+
 module.exports = router;
