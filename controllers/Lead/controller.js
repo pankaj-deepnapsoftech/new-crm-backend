@@ -1865,7 +1865,7 @@ const completeDemo = TryCatch(async (req, res) => {
     .findByIdAndUpdate(
       leadId,
       {
-        status: "Completed",
+        status: "Demo Completed",
         riFile: riFileUrl,
       },
       { new: true }
