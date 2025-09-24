@@ -2171,7 +2171,6 @@ const uploadRIFile = TryCatch(async (req, res) => {
     throw new ErrorHandler("No file uploaded", 400);
   }
 
-  // Return the file path that can be accessed via the backend
   const baseUrl =
     process.env.BACKEND_URL || "https://crmbackendnew.deepnapsoftech.com";
   const fileUrl = `${baseUrl}/uploads/${req.file.filename}`;

@@ -101,7 +101,6 @@ router.post(
   "/upload-ri",
   isAuthenticated,
   checkAccess,
-  upload.single("riFile"),
   uploadRIFile
 );
 
