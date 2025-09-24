@@ -34,6 +34,7 @@ const leadSchema = mongoose.Schema(
         "Demo",
         "Demo Preparation",
         "Scheduled Demo",
+        "Demo Completed",
       ],
       default: "Draft",
     },
