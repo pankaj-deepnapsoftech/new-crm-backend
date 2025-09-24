@@ -110,6 +110,7 @@ const leadSchema = mongoose.Schema(
         enum: ["Physical", "Virtual"],
       },
       notes: String,
+      remark: String,
     },
     demoPdf: {
       type: String,

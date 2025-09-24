@@ -2166,6 +2166,51 @@ const downloadRIFile = TryCatch(async (req, res) => {
   });
 });
 
+const editScheduleDemo = TryCatch(async (req, res) => {
+  const { leadId, status, remark } = req.body;
+
+  console.log("editScheduleDemo called with:", { leadId, status, remark });
+
+  const lead = await leadModel.findById(leadId);
+  if (!lead) {
+    throw new ErrorHandler("Lead not found", 404);
+  }
+
+  if (
+    req.user.role !== "Super Admin" &&
+    lead.creator.toString() !== req.user.id.toString() &&
+    lead?.assigned?._id?.toString() !== req.user.id.toString()
+  ) {
+    throw new ErrorHandler("You don't have permission to edit this demo", 403);
+  }
+
+  const updateData = {
+    status: status,
+  };
+
+  if (remark) {
+    updateData["demo.remark"] = remark;
+  }
+
+  const updatedLead = await leadModel
+    .findByIdAndUpdate(leadId, updateData, { new: true })
+    .populate("people", "firstname lastname")
+    .populate("company", "companyname")
+    .populate("products");
+
+  console.log("Lead after status update:", {
+    id: updatedLead._id,
+    status: updatedLead.status,
+    demoRemark: updatedLead.demo?.remark,
+  });
+
+  res.status(200).json({
+    success: true,
+    message: "Scheduled demo updated successfully",
+    lead: updatedLead,
+  });
+});
+
 const uploadRIFile = TryCatch(async (req, res) => {
   if (!req.file) {
     throw new ErrorHandler("No file uploaded", 400);
@@ -2197,6 +2242,7 @@ module.exports = {
   bulkDownload,
   dataBank,
   scheduleDemo,
+  editScheduleDemo,
   completeDemo,
   saveOrUpdateKYC,
   bulkSms,
