@@ -117,14 +117,14 @@ const leadSchema = mongoose.Schema(
     riFile: {
       type: String,
     },
-    annual_turn_over: { type: String },
-    company_type: {
-      type: String,
-      enum: ["Limited", "Private Limited", "Proprietorship", "Partnership", ""],
+    kyc: {
+      annual_turn_over: String,
+      company_type: String,
+      company_located: String,
+      company_tenure: String,
+      kyc_remarks: String,
     },
-    company_located: { type: String },
-    company_tenure: { type: String },
-    kyc_remarks: { type: String },
+
   },
 
   { timestamps: true }

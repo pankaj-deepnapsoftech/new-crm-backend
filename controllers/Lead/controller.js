@@ -1981,7 +1981,7 @@ const saveOrUpdateKYC = TryCatch(async (req, res) => {
   } = req.body;
 
   // Find the lead
-  let lead = await leadModel.findById(_id);
+  const lead = await leadModel.findById(_id);
 
   if (!lead) {
     throw new ErrorHandler("Lead not found", 404);
@@ -1999,21 +1999,29 @@ const saveOrUpdateKYC = TryCatch(async (req, res) => {
     );
   }
 
-  // Update the KYC fields
-  lead.annual_turn_over = annual_turn_over;
-  lead.company_type = company_type;
-  lead.company_located = company_located;
-  lead.company_tenure = company_tenure;
-  lead.kyc_remarks = kyc_remarks;
-
-  await lead.save();
+  // Update KYC as nested object
+  const updatedLead = await leadModel.findByIdAndUpdate(
+    _id,
+    {
+      kyc: {
+        annual_turn_over,
+        company_type,
+        company_located,
+        company_tenure,
+        kyc_remarks,
+      },
+    },
+    { new: true }
+  );
+  
 
   res.status(200).json({
     success: true,
     message: "KYC saved/updated successfully",
-    lead,
+    lead: updatedLead,
   });
 });
+
 const bulkSms = TryCatch(async (req, res) => {
   try {
     const { leadIds } = req.body;
