@@ -2204,10 +2204,55 @@ const editScheduleDemo = TryCatch(async (req, res) => {
     demoRemark: updatedLead.demo?.remark,
   });
 
+  let customerCreated = false;
+  if (status === "Completed") {
+    console.log("Status changed to Completed, creating customer record...");
+
+    let isExistingCustomer;
+    if (updatedLead.leadtype === "People") {
+      isExistingCustomer = await customerModel.findOne({
+        organization: req.user.organization,
+        people: updatedLead.people,
+      });
+    } else {
+      isExistingCustomer = await customerModel.findOne({
+        organization: req.user.organization,
+        company: updatedLead.company,
+      });
+    }
+
+    if (!isExistingCustomer) {
+      const customerData = {
+        organization: req.user.organization,
+        creator: req.user.id,
+        customertype: updatedLead.leadtype,
+        status: "Deal Done",
+        products: updatedLead.products,
+      };
+
+      if (updatedLead.leadtype === "People") {
+        customerData.people = updatedLead.people;
+      } else {
+        customerData.company = updatedLead.company;
+      }
+
+      const newCustomer = await customerModel.create(customerData);
+      console.log("New customer created:", newCustomer._id);
+      customerCreated = true;
+    } else {
+      console.log("Customer already exists, skipping creation");
+    }
+  }
+
+  const message = customerCreated
+    ? "Demo completed successfully and customer record created!"
+    : "Scheduled demo updated successfully";
+
   res.status(200).json({
     success: true,
-    message: "Scheduled demo updated successfully",
+    message: message,
     lead: updatedLead,
+    customerCreated: customerCreated,
   });
 });
 
