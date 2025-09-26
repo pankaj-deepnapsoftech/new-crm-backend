@@ -1866,7 +1866,7 @@ const completeDemo = TryCatch(async (req, res) => {
     .findByIdAndUpdate(
       leadId,
       {
-        status: "Completed",
+        status: "Demo Completed",
         riFile: riFileUrl,
       },
       { new: true }
@@ -1982,7 +1982,7 @@ const saveOrUpdateKYC = TryCatch(async (req, res) => {
   } = req.body;
 
   // Find the lead
-  let lead = await leadModel.findById(_id);
+  const lead = await leadModel.findById(_id);
 
   if (!lead) {
     throw new ErrorHandler("Lead not found", 404);
@@ -2000,21 +2000,29 @@ const saveOrUpdateKYC = TryCatch(async (req, res) => {
     );
   }
 
-  // Update the KYC fields
-  lead.annual_turn_over = annual_turn_over;
-  lead.company_type = company_type;
-  lead.company_located = company_located;
-  lead.company_tenure = company_tenure;
-  lead.kyc_remarks = kyc_remarks;
-
-  await lead.save();
+  // Update KYC as nested object
+  const updatedLead = await leadModel.findByIdAndUpdate(
+    _id,
+    {
+      kyc: {
+        annual_turn_over,
+        company_type,
+        company_located,
+        company_tenure,
+        kyc_remarks,
+      },
+    },
+    { new: true }
+  );
+  
 
   res.status(200).json({
     success: true,
     message: "KYC saved/updated successfully",
-    lead,
+    lead: updatedLead,
   });
 });
+
 const bulkSms = TryCatch(async (req, res) => {
   try {
     const { leadIds, templateId } = req.body;
@@ -2206,12 +2214,101 @@ const downloadRIFile = TryCatch(async (req, res) => {
   });
 });
 
+const editScheduleDemo = TryCatch(async (req, res) => {
+  const { leadId, status, remark } = req.body;
+
+  console.log("editScheduleDemo called with:", { leadId, status, remark });
+
+  const lead = await leadModel.findById(leadId);
+  if (!lead) {
+    throw new ErrorHandler("Lead not found", 404);
+  }
+
+  if (
+    req.user.role !== "Super Admin" &&
+    lead.creator.toString() !== req.user.id.toString() &&
+    lead?.assigned?._id?.toString() !== req.user.id.toString()
+  ) {
+    throw new ErrorHandler("You don't have permission to edit this demo", 403);
+  }
+
+  const updateData = {
+    status: status,
+  };
+
+  if (remark) {
+    updateData["demo.remark"] = remark;
+  }
+
+  const updatedLead = await leadModel
+    .findByIdAndUpdate(leadId, updateData, { new: true })
+    .populate("people", "firstname lastname")
+    .populate("company", "companyname")
+    .populate("products");
+
+  console.log("Lead after status update:", {
+    id: updatedLead._id,
+    status: updatedLead.status,
+    demoRemark: updatedLead.demo?.remark,
+  });
+
+  let customerCreated = false;
+  if (status === "Completed") {
+    console.log("Status changed to Completed, creating customer record...");
+
+    let isExistingCustomer;
+    if (updatedLead.leadtype === "People") {
+      isExistingCustomer = await customerModel.findOne({
+        organization: req.user.organization,
+        people: updatedLead.people,
+      });
+    } else {
+      isExistingCustomer = await customerModel.findOne({
+        organization: req.user.organization,
+        company: updatedLead.company,
+      });
+    }
+
+    if (!isExistingCustomer) {
+      const customerData = {
+        organization: req.user.organization,
+        creator: req.user.id,
+        customertype: updatedLead.leadtype,
+        status: "Deal Done",
+        products: updatedLead.products,
+      };
+
+      if (updatedLead.leadtype === "People") {
+        customerData.people = updatedLead.people;
+      } else {
+        customerData.company = updatedLead.company;
+      }
+
+      const newCustomer = await customerModel.create(customerData);
+      console.log("New customer created:", newCustomer._id);
+      customerCreated = true;
+    } else {
+      console.log("Customer already exists, skipping creation");
+    }
+  }
+
+  const message = customerCreated
+    ? "Demo completed successfully and customer record created!"
+    : "Scheduled demo updated successfully";
+
+  res.status(200).json({
+    success: true,
+    message: message,
+    lead: updatedLead,
+    customerCreated: customerCreated,
+  });
+});
+
 const uploadRIFile = TryCatch(async (req, res) => {
   if (!req.file) {
     throw new ErrorHandler("No file uploaded", 400);
   }
 
-  // Return the file path that can be accessed via the backend
   const baseUrl =
     process.env.BACKEND_URL || "https://crmbackendnew.deepnapsoftech.com";
   const fileUrl = `${baseUrl}/uploads/${req.file.filename}`;
@@ -2238,6 +2335,7 @@ module.exports = {
   bulkDownload,
   dataBank,
   scheduleDemo,
+  editScheduleDemo,
   completeDemo,
   saveOrUpdateKYC,
   bulkSms,

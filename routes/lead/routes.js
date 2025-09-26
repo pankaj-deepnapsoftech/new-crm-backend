@@ -16,6 +16,7 @@ const {
   bulkDownload,
   dataBank,
   scheduleDemo,
+  editScheduleDemo,
   completeDemo,
   saveOrUpdateKYC,
   bulkSms,
@@ -29,6 +30,7 @@ const {
   deleteLeadValidator,
   leadDetailsValidator,
   scheduleDemoValidator,
+  editScheduleDemoValidator,
 } = require("../../validators/lead/validator");
 const { checkAccess } = require("../../helpers/checkAccess");
 const { upload } = require("../../utils/multer");
@@ -84,6 +86,14 @@ router.post(
   scheduleDemo
 );
 router.post(
+  "/edit-schedule-demo",
+  isAuthenticated,
+  checkAccess,
+  editScheduleDemoValidator(),
+  validateHandler,
+  editScheduleDemo
+);
+router.post(
   "/complete-demo",
   isAuthenticated,
   checkAccess,
@@ -97,12 +107,6 @@ router.get(
   checkAccess,
   downloadRIFile
 );
-router.post(
-  "/upload-ri",
-  isAuthenticated,
-  checkAccess,
-  upload.single("riFile"),
-  uploadRIFile
-);
+router.post("/upload-ri", isAuthenticated, checkAccess, uploadRIFile);
 
 module.exports = router;
