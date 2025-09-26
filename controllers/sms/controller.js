@@ -5,7 +5,6 @@ const SMSLog = require("../../models/sms.js"); // Import the SMSLog model
 const axios = require("axios");
 
 const sendBulkSms = async (req, res) => {
-
   try {
     const { mobiles, templateId, message, name } = req.body;
 

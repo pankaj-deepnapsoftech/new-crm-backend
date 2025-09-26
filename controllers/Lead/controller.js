@@ -18,6 +18,7 @@ const { capitalizeFirstChar } = require("../../utils/capitalize");
 const { parse } = require("json2csv");
 const path = require("path");
 const sendWhatsappTemplate = require("../../utils/sendWhatsappTemplate");
+const smsTemplateModel = require("../../models/smsTemplate");
 
 const createLead = TryCatch(async (req, res) => {
   const {
@@ -2016,7 +2017,7 @@ const saveOrUpdateKYC = TryCatch(async (req, res) => {
 });
 const bulkSms = TryCatch(async (req, res) => {
   try {
-    const { leadIds } = req.body;
+    const { leadIds, templateId } = req.body;
 
     if (!leadIds || !Array.isArray(leadIds) || leadIds.length === 0) {
       return res
@@ -2024,23 +2025,53 @@ const bulkSms = TryCatch(async (req, res) => {
         .json({ success: false, message: "leadIds array is required" });
     }
 
+    if (!templateId) {
+      return res
+        .status(400)
+        .json({ success: false, message: "templateId is required" });
+    }
+
+    // Fetch template with entityId
+    const template = await smsTemplateModel.findOne({
+      _id: templateId,
+      organization: req.user.organization,
+    });
+
+    if (!template) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Template not found" });
+    }
+
+    const dltTemplateId = template.templateId;
+    const templateText = template.templateText;
+    const useEntityId = template.entityId || sms_entity_id;  // Prefer template's entityId
+
     // Website SMS config
-    const websiteCofiguration = await websiteConfigurationModel.findOne({
+    const websiteConfiguration = await websiteConfigurationModel.findOne({
       organization: req.user.organization,
     });
     const {
       sms_api_key,
       sms_api_secret,
       sms_sender_id,
-      sms_entity_id,
-      sms_welcome_template_id,
-    } = websiteCofiguration;
+    } = websiteConfiguration;
 
-    if (!sms_api_key || !sms_api_secret || !sms_welcome_template_id) {
+    if (!sms_api_key || !sms_api_secret) {
       return res
         .status(400)
         .json({ success: false, message: "SMS config missing" });
     }
+
+    // Helper function to replace {#var#} placeholders sequentially
+    const replacePlaceholders = (text, varsList) => {
+      const parts = text.split('{#var#}');
+      if (parts.length !== varsList.length + 1) {
+        // Fallback: replace all with first var if mismatch
+        return text.replace(/\{#var#\}/g, varsList[0] || '');
+      }
+      return parts.map((part, i) => part + (varsList[i] || '')).join('');
+    };
 
     let results = [];
 
@@ -2056,25 +2087,35 @@ const bulkSms = TryCatch(async (req, res) => {
         continue;
       }
 
-      const phone = lead?.people?.phone || lead?.company?.phone || null;
-      const name =
-        lead?.people?.firstname || lead?.company?.companyname || "Customer";
+      let phone = (lead?.people?.phone || lead?.company?.phone || "").toString();
+      // Strip +91 or 91 to get 10-digit number (as per Nimbus requirement)
+      phone = phone.replace(/^\+?91/, '');
+      const name = (lead?.people?.firstname || lead?.company?.companyname || "Customer").trim();
+      const productName = lead.products[0]?.name || '';
 
-      if (!phone) {
-        results.push({ leadId, status: "failed", error: "No phone number" });
+      if (!phone || phone.length !== 10) {
+        results.push({ leadId, status: "failed", error: "Invalid phone number (must be 10 digits)" });
         continue;
       }
 
-      const smsMessage = `Dear ${name}, Welcome to Itsybizz! We're thrilled to have you on board and ready to support your business journey. Let's succeed together!`;
+      // Prepare variables for placeholders: [name, product, ...] - add more as needed
+      const varsList = [name, productName];
+
+      // Replace placeholders
+      let smsMessage = replacePlaceholders(templateText, varsList);
+
+      // Add 1-second delay for rate limiting
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
       try {
+        console.log("Sending SMS:", { phone, dltTemplateId, smsMessage, sms_sender_id, useEntityId });
         const smsResult = await sendSms(
           sms_api_key,
           sms_api_secret,
           phone,
-          sms_welcome_template_id,
+          dltTemplateId,
           sms_sender_id.trim(),
-          sms_entity_id,
+          useEntityId,
           smsMessage
         );
 
@@ -2103,7 +2144,6 @@ const bulkSms = TryCatch(async (req, res) => {
     });
   }
 });
-
 const downloadRIFile = TryCatch(async (req, res) => {
   const { leadId } = req.params;
 
