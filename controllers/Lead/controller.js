@@ -1775,7 +1775,7 @@ function isValidDate(date) {
   return !isNaN(parsedDate.getTime());
 }
 
-// lead move to data bank
+// lead move to Archived
 const dataBank = async (req, res) => {
   const { dataInfo, dataBank } = req.body;
 
